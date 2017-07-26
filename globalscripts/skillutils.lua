@@ -1,8 +1,3 @@
--- Skill Utilities redux, b1
--- Author: RWND, original plugin by hlstriker
--- Features: saveme, posme, timer
--- Missing: Noclip (just add it using sv_cheats...)
-
 IncludeScript("base_chatcommands")
 
 ---------------------------
@@ -30,11 +25,15 @@ chatbase_addcommand("posme", "Restores your position.", "posme")
 function chat_posme(player)
 	if IsPlayer(player) then
 		key = GetSteamID(player)
-		local neworigin = pos_table[key]
-		local newangles = angle_table[key]
-		local newvelocity = Vector(0,0,0)
-		player:Teleport(neworigin, newangles, newvelocity)
-		ChatToPlayer(player, "Your position was restored.")
+		if pos_table[key] ~= nil and angle_table[key] ~= nil then
+			local neworigin = pos_table[key]
+			local newangles = angle_table[key]
+			local newvelocity = Vector(0,0,0)
+			player:Teleport(neworigin, newangles, newvelocity)
+			ChatToPlayer(player, "Your position was restored.")
+		else
+			ChatToPlayer(player, "You haven't set any position yet.")
+		end
 	end
 end
 
@@ -63,26 +62,62 @@ time_table = {}
 -- Timer commands --
 --------------------
 
+-- credit to jesseadams@github
+function sec_to_str(sec)
+	if sec<=0 then
+		return "00:00:00"
+	else
+		h = string.format("%02.f", math.floor(sec/3600))
+		m = string.format("%02.f", math.floor( (sec - (h * 60)) / 60))
+		s = string.format("%02.f", math.floor(sec - (h * 3600) - (m * 60)))
+		return h..":"..m..":"..s
+	end	
+end
+
+function start_timer(player)
+	key = player:GetSteamID()
+
+	-- reset player
+	player:Respawn()
+	angle_table[key] = nil
+	pos_table[key] = nil
+
+	if time_table[key] ~=nil then
+		ChatToPlayer(player, "Timer reset!")
+	else
+		ChatToPlayer(player, "Timer started!")
+	end
+	time_table[key] = os.clock()
+end
+
+function stop_timer(player, flag)
+	if time_table[key] ~= nil then
+		local time = os.clock()-time_table[key]
+		local output = string.format("Your time was %s seconds.", sec_to_str(time))
+		time_table[key] = nil
+		ChatToPlayer(player, output)
+	else
+		ChatToPlayer(player,"You haven't started a timer yet.")
+	end
+end
+
 chatbase_addcommand("timer", "Manages timer", "timer <start|stop>")
 function chat_timer(player, setting)
 	if IsPlayer(player) then
-		key = player:GetSteamID()
 		if setting == "start" then
-			if time_table[key] ~=nil then
-				ChatToPlayer(player, "Timer reset!")
-			else
-				ChatToPlayer(player, "Timer started!")
-			end
-			time_table[key] = os.clock()
-
+			start_timer(player)
 		elseif setting == "stop" then
-			if time_table[key] ~= nil then
-				local output = string.format("Your time was %d seconds.", os.clock()-time_table[key])
-				time_table[key] = nil
-				ChatToPlayer(player, output)
-			else
-				ChatToPlayer(player,"You haven't started a timer yet.")
-			end
+			stop_timer(player, false)
 		end
+	end
+end
+
+-- to stop timer
+function baseflag:touch(ent)
+	player = CastToPlayer(ent)
+	key = player:GetSteamID()
+
+	if time_table[key] ~= nil then
+		stop_timer(player, true)
 	end
 end
