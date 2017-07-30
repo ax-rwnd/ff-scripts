@@ -44,6 +44,11 @@ function startup()
         team:SetAllies( Team.kYellow )
 end
 
+chatbase_addcommand("respawn", "Force respawn", "respawn")
+function chat_respawn(player)
+	player:Respawn()
+end
+
 chatbase_addcommand("saveme", "Save your position.", "saveme")
 function chat_saveme(player)
 	if IsPlayer(player) then
@@ -142,7 +147,7 @@ function stop_timer(player, flag)
 				ChatToPlayer(player, output)
 			end
 
-			if record_table[key] == nil or time_table[key] <= record_table[key] then
+			if record_table[key] == nil or time <= record_table[key] then
 				record_table[key] = time
 				SaveMapData(record_table, "times")
 				ChatToPlayer(player, "Your personal best was updated.")
@@ -158,20 +163,23 @@ function stop_timer(player, flag)
 	time_table[key] = nil
 end
 
-chatbase_addcommand("timer", "Manages timer", "timer <start|stop>")
+chatbase_addcommand("timer", "Manages timer", "timer <start|stop|best>")
 function chat_timer(player, setting)
 	if IsPlayer(player) then
 		if setting == "start" then
 			start_timer(player)
 		elseif setting == "stop" then
 			stop_timer(player, false)
+		elseif setting == "best" then
+			local key = player:GetSteamID()
+			if record_table[key] ~= nil then
+				local output = string.format("Your best time is %s.", sec_to_str(record_table[player:GetSteamID()]))
+				ChatToPlayer(player, output)
+			else
+				ChatToPlayer(player, "You don't have a recorded time yet.")
+			end
 		end
 	end
-end
-
-chatbase_addcommand("respawn", "Force respawn", "respawn")
-function chat_respawn(player)
-	player:Respawn()
 end
 
 -- to stop timer
